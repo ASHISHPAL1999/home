@@ -1,0 +1,60 @@
+
+# Container Security Audit Commands with Explanation
+
+1. Check Memory and CPU Limits:
+--------------------------------
+docker inspect <container_id_or_name> --format='
+Memory: {{.HostConfig.Memory}} bytes
+CPU Shares: {{.HostConfig.CpuShares}}
+CPU Quota: {{.HostConfig.CpuQuota}}
+CPU Period: {{.HostConfig.CpuPeriod}}'
+- Ensures the container has memory and CPU constraints. A value of 0 means no limit is set.
+
+2. Check Read-Only Filesystem:
+------------------------------
+docker inspect <container_id_or_name> --format='ReadonlyRootfs: {{.HostConfig.ReadonlyRootfs}}'
+- A read-only root filesystem enhances security. It should return 'true'.
+
+3. Check Linux Capabilities:
+----------------------------
+docker inspect <container_id_or_name> --format='
+CapAdd: {{.HostConfig.CapAdd}}
+CapDrop: {{.HostConfig.CapDrop}}'
+- Displays added or dropped Linux capabilities. It's best to drop unneeded ones.
+
+4. Check for Privileged Mode:
+-----------------------------
+docker inspect <container_id_or_name> --format='Privileged: {{.HostConfig.Privileged}}'
+- Containers in privileged mode have full access to the host. This should return 'false'.
+
+5. Check AppArmor and Seccomp Profiles:
+---------------------------------------
+docker inspect <container_id_or_name> --format='
+AppArmorProfile: {{.AppArmorProfile}}
+SeccompProfile: {{.HostConfig.SecurityOpt}}'
+- These profiles enforce security rules. 'unconfined' or empty values are insecure.
+
+6. Check Writable Mounts:
+-------------------------
+docker inspect <container_id_or_name> --format '{{ json .Mounts }}' | jq
+- Look for volumes where "RW": true, which indicates write access.
+
+7. Check Network Mode:
+----------------------
+docker inspect <container_id_or_name> --format='NetworkMode: {{.HostConfig.NetworkMode}}'
+- Avoid 'host' network mode as it bypasses network isolation.
+
+8. List Running Processes:
+--------------------------
+docker exec <container_id_or_name> ps aux
+- Helps identify suspicious or unexpected processes running inside the container.
+
+9. Check for Root User:
+-----------------------
+docker exec <container_id_or_name> whoami
+- Running as 'root' is a risk. Use non-root users in production containers.
+
+10. Check Open Ports:
+---------------------
+docker port <container_id_or_name>
+- Lists the exposed ports. Unnecessary ports should be closed.

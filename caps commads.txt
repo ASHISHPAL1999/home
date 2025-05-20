@@ -1,0 +1,52 @@
+The command:
+
+docker inspect <container_id_or_name> --format='
+CapAdd: {{.HostConfig.CapAdd}}
+CapDrop: {{.HostConfig.CapDrop}}'
+is used to check which Linux capabilities have been added (CapAdd) or removed (CapDrop) from a Docker container.
+
+🔍 What Are Linux Capabilities?
+In Linux, capabilities are granular privileges that were introduced to divide the power of the all-powerful root user into distinct units. Docker containers run on top of the Linux kernel and by default drop many powerful capabilities for security.
+
+🔧 Fields Explanation
+CapAdd: Lists capabilities explicitly added to the container that are not available by default.
+
+CapDrop: Lists capabilities explicitly removed from the container.
+
+🔐 Security Impact
+✅ Safe Practice (Good Security Posture):
+CapAdd is empty: No extra privileges granted.
+
+CapDrop has entries: Unnecessary privileges removed (e.g., NET_RAW, SYS_ADMIN).
+
+⚠️ Risky Practice (Weaker Security):
+CapAdd includes powerful capabilities, such as:
+
+SYS_ADMIN: Full control over the system (like root access).
+
+NET_ADMIN: Network configuration privileges.
+
+DAC_OVERRIDE: Override file permissions.
+
+SYS_PTRACE: Inspect or control other processes.
+
+CapDrop is empty: All default capabilities are retained, which increases attack surface.
+
+🛡️ Best Practices
+Run containers with minimal capabilities required for their function.
+
+Use --cap-drop=ALL and selectively add only those needed via --cap-add.
+
+Example:
+
+docker run --cap-drop=ALL --cap-add=NET_BIND_SERVICE my_image
+This allows the container to bind to low-numbered ports (like 80/443) without other unnecessary privileges.
+
+✅ Summary
+Inspecting CapAdd and CapDrop helps you:
+
+Audit privilege usage
+
+Enforce least privilege principle
+
+Reduce attack surface in production
