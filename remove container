@@ -1,5 +1,24 @@
-docker ps -a --format '{{.ID}} {{.CreatedAt}}' | while read id date; do
-    if [ $(($(date +%s) - $(date -d "$date" +%s))) -gt $((2*86400)) ]; then
-        docker stop $id >/dev/null 2>&1 && docker rm $id
+#!/bin/bash
+
+# Get all container IDs (running and stopped)
+containers=$(docker ps -a -q)
+
+# Loop through each container
+for cid in $containers; do
+    # Get the container's creation time in seconds since epoch
+    created=$(docker inspect -f '{{.Created}}' "$cid")
+    created_epoch=$(date -d "$created" +%s)
+
+    # Get current time
+    now_epoch=$(date +%s)
+
+    # Calculate container age in days
+    age_days=$(( (now_epoch - created_epoch) / 86400 ))
+
+    # If older than 2 days, stop and remove
+    if [ "$age_days" -gt 2 ]; then
+        echo "Stopping and removing container $cid (created $age_days days ago)"
+        docker stop "$cid" >/dev/null 2>&1
+        docker rm "$cid"
     fi
 done
