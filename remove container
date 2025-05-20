@@ -1,0 +1,5 @@
+docker ps -a --format '{{.ID}} {{.CreatedAt}}' | while read id date; do
+    if [ $(($(date +%s) - $(date -d "$date" +%s))) -gt $((2*86400)) ]; then
+        docker stop $id >/dev/null 2>&1 && docker rm $id
+    fi
+done
