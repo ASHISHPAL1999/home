@@ -48,4 +48,77 @@ RUN chown -R appuser:appuser /usr/local/tomcat && \
     chmod -R 700 /usr/local/tomcat/logs /usr/local/tomcat/temp /usr/local/tomcat/work && \
     \
     # external config: owner rw only
-    chmod 600 /usr/local/tomcat/config/application.properties
+    chmod 600 /usr/local/tomcat/config/application.
+
+____
+
+# -----------------------------------------------------------------------------
+# 1. Base Image
+# -----------------------------------------------------------------------------
+FROM tomcat:10.1.42-jdk17-temurin
+
+# -----------------------------------------------------------------------------
+# 2. Create a Non‑Root User
+# -----------------------------------------------------------------------------
+RUN useradd -u 1001 appuser
+
+# -----------------------------------------------------------------------------
+# 3. Prepare Custom Config Directory
+# -----------------------------------------------------------------------------
+# Only create the external config dir—you don’t need to re-create logs, temp, or work
+RUN mkdir -p /usr/local/tomcat/config
+
+# -----------------------------------------------------------------------------
+# 4. Copy Application Artifacts
+# -----------------------------------------------------------------------------
+COPY your-app.war /usr/local/tomcat/webapps/
+COPY application.properties /usr/local/tomcat/config/application.properties
+
+# -----------------------------------------------------------------------------
+# 5. Harden Filesystem Permissions
+# -----------------------------------------------------------------------------
+RUN chown -R appuser:appuser /usr/local/tomcat \
+    && chmod -R go= /usr/local/tomcat \
+    \
+    # 5.1 bin: owner read+exec only (500)
+    && find /usr/local/tomcat/bin -type d -exec chmod 500 {} \; \
+    && find /usr/local/tomcat/bin -type f -exec chmod 500 {} \; \
+    \
+    # 5.2 conf: dirs r-x (500), files r-- (400)
+    && find /usr/local/tomcat/conf -type d -exec chmod 500 {} \; \
+    && find /usr/local/tomcat/conf -type f -exec chmod 400 {} \; \
+    \
+    # 5.3 webapps: owner read+exec only, no writes (500)
+    && chmod -R u=,go= /usr/local/tomcat/webapps \
+    && chmod -R u=rx,go= /usr/local/tomcat/webapps \
+    && find /usr/local/tomcat/webapps -type f -name "*.war" \
+           -exec chmod u=r,go= {} \; \
+    \
+    # 5.4 runtime dirs (logs, temp, work): owner rwx only (700)
+    && chmod -R 700 /usr/local/tomcat/logs \
+    && chmod -R 700 /usr/local/tomcat/temp \
+    && chmod -R 700 /usr/local/tomcat/work \
+    \
+    # 5.5 external config: owner read+write only (600)
+    && chmod 600 /usr/local/tomcat/config/application.properties
+
+# -----------------------------------------------------------------------------
+# 6. Expose Ports
+# -----------------------------------------------------------------------------
+EXPOSE 8080
+
+# -----------------------------------------------------------------------------
+# 7. Switch to Non‑Root User
+# -----------------------------------------------------------------------------
+USER appuser
+
+# -----------------------------------------------------------------------------
+# 8. (Optional) External Spring Config
+# -----------------------------------------------------------------------------
+ENV JAVA_OPTS="-Dspring.config.location=/usr/local/tomcat/config/application.properties"
+
+# -----------------------------------------------------------------------------
+# 9. Launch Tomcat
+# -----------------------------------------------------------------------------
+CMD ["catalina.sh", "run"]
+
