@@ -1,0 +1,30 @@
+RUN chown -R tomcat:tomcat /usr/local/tomcat \
+    && chmod -R go= /usr/local/tomcat \
+    \
+    # 5.1 bin: owner read+exec only (500)
+    && find /usr/local/tomcat/bin -type d -exec chmod 500 {} \; \
+    && find /usr/local/tomcat/bin -type f -exec chmod 500 {} \; \
+    \
+    # 5.2 conf: dirs r-x (500), files r-- (400)
+    && find /usr/local/tomcat/conf -type d -exec chmod 500 {} \; \
+    && find /usr/local/tomcat/conf -type f -exec chmod 400 {} \; \
+    \
+    # 5.3 webapps: owner read+exec only, no writes (500)
+    && chmod -R u=,go= /usr/local/tomcat/webapps \
+    && chmod -R u=rx,go= /usr/local/tomcat/webapps \
+    && find /usr/local/tomcat/webapps -type f -name "*.war" \
+           -exec chmod u=r,go= {} \; \
+    \
+    # 5.4 runtime dirs (logs, temp, work): owner rwx only (700)
+    && chmod -R 600 /usr/local/tomcat/logs \
+    && chmod -R 600 /usr/local/tomcat/temp \
+    && chmod -R 600 /usr/local/tomcat/work \
+    \
+
+    # 5.2 conf: dirs r-x (500), files r-- (400)
+    RUN find /usr/local/tomcat/lib -type d -exec chmod 500 {} \; \
+    && find /usr/local/tomcat/lib -type f -exec chmod 400 {} \; \
+    # 5.4 webapps (exploded your-app): dirs r-x (500), files r-- (400) except application.properties
+   RUN  && find /usr/local/tomcat/webapps/epahub -type d -exec chmod 500 {} \; \
+    && find /usr/local/tomcat/webapps/epahub -type f -exec chmod 400 {} \; \
+    && chmod 600 /usr/local/tomcat/webapps/epahub/WEB-INF/classes/application.properties
