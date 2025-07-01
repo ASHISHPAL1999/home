@@ -1,0 +1,24 @@
+# Assume your-app.war and application.properties are already in place
+
+# 1. Set ownership
+RUN chown -R appuser:appuser /usr/local/tomcat
+
+# 2. Remove all group/other perms
+RUN chmod -R go= /usr/local/tomcat && \
+    \
+    # bin scripts: owner read+exec only
+    find /usr/local/tomcat/bin -type f -exec chmod 500 {} \; && \
+    find /usr/local/tomcat/bin -type d -exec chmod 500 {} \; && \
+    \
+    # conf: dir=r-x, files=r--
+    find /usr/local/tomcat/conf -type d -exec chmod 500 {} \; && \
+    find /usr/local/tomcat/conf -type f -exec chmod 400 {} \; && \
+    \
+    # webapps: owner r-x
+    chmod -R 500 /usr/local/tomcat/webapps && \
+    \
+    # runtime dirs: owner rwx
+    chmod -R 700 /usr/local/tomcat/logs /usr/local/tomcat/temp /usr/local/tomcat/work && \
+    \
+    # external config: owner rw
+    chmod 600 /usr/local/tomcat/config/application.properties
