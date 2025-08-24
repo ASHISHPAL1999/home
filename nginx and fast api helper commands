@@ -1,0 +1,15 @@
+
+1. create venv 
+2. install dependency
+- pip install -r uvicorn fastapi
+3. run fast api securely restrctiec to local system
+uvicorn main:app --host 127.0.0.1 --port 8000 --workers 4 --proxy-headers --forwarded-allow-ips=127.0.0.1
+4. create conf for fastapi and following location:
+ sudo nano /etc/nginx/sites-enabled/fastapi_ip
+5. test connection
+nginx -t
+5. systemctl restart nginx & systemctl reload nginx
+6. generate certificate for local or IP based
+  343  sudo openssl req -x509 -nodes -days 365   -newkey rsa:2048   -keyout /etc/ssl/private/localhost.key   -out /etc/ssl/certs/localhost.crt   -subj "/CN=localhost"
+  347  sudo openssl req -x509 -nodes -days 365   -newkey rsa:2048   -keyout /etc/ssl/private/localhost.key   -out /etc/ssl/certs/localhost.crt   -subj "/CN=localhost"
+  363  sudo openssl req -x509 -nodes -days 365   -newkey rsa:2048   -keyout /etc/ssl/private/ip.key   -out /etc/ssl/certs/ip.crt   -subj "/CN=192.168.1.100"
