@@ -1,0 +1,80 @@
+# Redirect all HTTP to HTTPS
+
+server {
+    listen 80;
+    server_tokens off;
+    more_clear_headers Server;   # only for this site  
+  server_name 52.91.58.123;
+   return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name 52.91.58.123;
+     server_tokens off;
+       more_clear_headers Server;   # only for this site
+    # Self-signed SSL certs (generated manually)
+    ssl_certificate     /etc/ssl/certs/ip.crt;
+    ssl_certificate_key /etc/ssl/private/ip.key;
+ 
+# TLS Security
+
+# Session settings
+ssl_session_cache shared:SSL:10m;
+ssl_session_timeout 1h;
+
+# OCSP Stapling (if domain-based with valid cert)
+#ssl_stapling on;
+#ssl_stapling_verify on;
+
+    # Security Headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+    add_header Permissions-Policy "geolocation=(), microphone=()" always;
+    add_header Content-Security-Policy "default-src 'self'; frame-ancestors 'none';" always;
+
+    # Limit upload size
+    client_max_body_size 10M;
+
+    # Logs
+    access_log /var/log/nginx/fastapi_access.log;
+    error_log  /var/log/nginx/fastapi_error.log warn;
+
+    # Proxy to FastAPI (Uvicorn on localhost)
+    location / {
+         #limit_req zone=api_data burst=10 nodelay;
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_redirect off;
+        proxy_buffering off;
+    }
+
+
+  # 🔔 Custom response when rate limit is hit
+    error_page 503 = @rate_limited;
+    location @rate_limited {
+        return 429 "Too Many Requests\n";
+    }
+
+	# Rate-limit ONLY /api/data
+    location /api/data {
+        limit_req zone=api_data burst=5 nodelay;
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_redirect off;
+        proxy_buffering off;
+    }
+
+}
