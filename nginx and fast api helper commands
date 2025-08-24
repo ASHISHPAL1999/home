@@ -17,3 +17,15 @@ sudo systemctl reload nginx
   343  sudo openssl req -x509 -nodes -days 365   -newkey rsa:2048   -keyout /etc/ssl/private/localhost.key   -out /etc/ssl/certs/localhost.crt   -subj "/CN=localhost"
   347  sudo openssl req -x509 -nodes -days 365   -newkey rsa:2048   -keyout /etc/ssl/private/localhost.key   -out /etc/ssl/certs/localhost.crt   -subj "/CN=localhost"
   363  sudo openssl req -x509 -nodes -days 365   -newkey rsa:2048   -keyout /etc/ssl/private/ip.key   -out /etc/ssl/certs/ip.crt   -subj "/CN=192.168.1.100"
+
+7 , extra directive in nginx
+
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install nginx-extras (instead of nginx-core)
+sudo apt install nginx-extras -y
+
+example:
+more_clear_headers Server;
+more_clear_headers X-Powered-By;
