@@ -6,8 +6,12 @@
 uvicorn main:app --host 127.0.0.1 --port 8000 --workers 4 --proxy-headers --forwarded-allow-ips=127.0.0.1
 4. create conf for fastapi and following location:
  sudo nano /etc/nginx/sites-enabled/fastapi_ip
-5. test connection
-nginx -t
+5. test connection and symbolik link
+
+sudo ln -sf /etc/nginx/sites-available/fastapi_ip /etc/nginx/sites-enabled/fastapi_ip
+sudo nginx -t
+sudo systemctl reload nginx
+ 
 5. systemctl restart nginx & systemctl reload nginx
 6. generate certificate for local or IP based
   343  sudo openssl req -x509 -nodes -days 365   -newkey rsa:2048   -keyout /etc/ssl/private/localhost.key   -out /etc/ssl/certs/localhost.crt   -subj "/CN=localhost"
