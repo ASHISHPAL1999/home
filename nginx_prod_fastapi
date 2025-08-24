@@ -1,0 +1,77 @@
+# Redirect HTTP -> HTTPS
+server {
+    listen 80;
+    server_name YOUR.SERVER.IP.HERE;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name YOUR.SERVER.IP.HERE;
+
+    # Self-signed for IP
+    ssl_certificate     /etc/ssl/certs/ip.crt;
+    ssl_certificate_key /etc/ssl/private/ip.key;
+
+    # TLS (compatible with OpenSSL 3)
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers "ECDHE+AESGCM:ECDHE+CHACHA20:ECDHE+AES256";
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1h;
+
+    # HSTS (works only over HTTPS)
+    add_header Strict-Transport-Security "max-age=31536000" always;
+
+    # Security Headers
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+    add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
+    add_header Content-Security-Policy "default-src 'self'; frame-ancestors 'none';" always;
+
+    # Size & timeouts
+    client_max_body_size 10M;
+    send_timeout 30s;
+    proxy_read_timeout 60s;
+    proxy_send_timeout 60s;
+
+    # Basic rate limit (per IP) for /api
+    limit_req_zone $binary_remote_addr zone=api_ratelimit:10m rate=5r/s;
+
+    # App proxy
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host $host;                  # preserve Host
+        proxy_set_header X-Real-IP $remote_addr;      # client IP
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_redirect off;
+        proxy_buffering off;
+    }
+
+    # Apply rate limit to API paths (tweak as needed)
+    location ^~ /api/ {
+        limit_req zone=api_ratelimit burst=10 nodelay;
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Optional: static files
+    location /static/ {
+        alias /var/www/fastapi_app/static/;
+        expires 30d;
+        add_header Cache-Control "public";
+    }
+
+    access_log /var/log/nginx/fastapi_access.log;
+    error_log  /var/log/nginx/fastapi_error.log warn;
+}
