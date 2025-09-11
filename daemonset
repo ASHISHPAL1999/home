@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: apparmor-loader
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      name: apparmor-loader
+  template:
+    metadata:
+      labels:
+        name: apparmor-loader
+    spec:
+      hostPID: true
+      hostNetwork: true
+      containers:
+      - name: apparmor
+        image: ubuntu:20.04
+        securityContext:
+          privileged: true
+        command:
+        - /bin/sh
+        - -c
+        - |
+          apt-get update && apt-get install -y apparmor-utils;
+          cp /profiles/tomcat-apparmor.profile /etc/apparmor.d/;
+          apparmor_parser -r /etc/apparmor.d/tomcat-apparmor.profile;
+          sleep infinity
+        volumeMounts:
+        - name: profiles
+          mountPath: /profiles
+        - name: apparmor
+          mountPath: /etc/apparmor.d
+      volumes:
+      - name: profiles
+        configMap:
+          name: tomcat-apparmor-cm
+      - name: apparmor
+        hostPath:
+          path: /etc/apparmor.d
