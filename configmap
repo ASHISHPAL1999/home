@@ -1,0 +1,2 @@
+kubectl create configmap tomcat-apparmor-cm \
+  --from-file=tomcat-apparmor.profile
