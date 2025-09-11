@@ -1,2 +1,13 @@
 kubectl create configmap tomcat-apparmor-cm \
   --from-file=tomcat-apparmor.profile
+
+
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "apparmor-tomcat.fullname" . }}-cm
+  namespace: kube-system
+data:
+  {{ .Values.apparmor.profileName }}.profile: |
+{{ .Files.Get "files/tomcat-apparmor.profile" | indent 4 }}
