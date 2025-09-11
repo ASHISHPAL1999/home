@@ -11,3 +11,7 @@ metadata:
 data:
   {{ .Values.apparmor.profileName }}.profile: |
 {{ .Files.Get "files/tomcat-apparmor.profile" | indent 4 }}
+
+
+Warning  FailedMount        13m (x13 over 24m)    kubelet             MountVolume.MountDevice failed for volume "pv-TEST07aksconfigsa01--appsec-emrjob" : fetching NodeStageSecretRef maseva-appsec/secret-TEST07aksconfigsa01 failed: kubernetes.io/csi: failed to find the secret secret-TEST07aksconfigsa01 in the namespace appsec with error: secrets "secret-TEST07aksconfigsa01" not found
+  Warning  FailedMount        3m36s (x18 over 24m)  kubelet             MountVolume.SetUp failed for volume "config" : configmap references non-existent config key: config.xml
