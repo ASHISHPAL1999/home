@@ -1,0 +1,179 @@
+🔐 Security-Hardened Guide for WSGI & ASGI Servers
+🚫 Important Warning
+
+Never run in debug mode in production.
+
+Never use --reload in production.
+These options are only for local development, as they expose stack traces, restart workers on file changes, and open up unnecessary attack surfaces.
+
+
+1️⃣ Gunicorn (WSGI)
+✅ Hardened Command
+gunicorn myapp:wsgi_app \
+  --workers 4 \
+  --worker-class sync \
+  --bind unix:/tmp/gunicorn.sock \
+  --user nobody \
+  --group nogroup \
+  --access-logfile /var/log/gunicorn/access.log \
+  --error-logfile /var/log/gunicorn/error.log \
+  --capture-output \
+  --limit-request-line 8190 \
+  --limit-request-field_size 8190 \
+  --timeout 30
+
+  Explanation of Key Flags
+
+--workers 4 → Run multiple worker processes (tune per CPU).
+
+--bind unix:/tmp/gunicorn.sock → Use Unix socket (safer than TCP).
+
+--user nobody --group nogroup → Drop privileges after binding.
+
+--access-logfile / --error-logfile → Separate structured logs.
+
+--limit-request-line & --limit-request-field_size → Mitigate request smuggling.
+
+--timeout 30 → Kill stuck workers.
+
+⚠️ Do not use --reload in production.
+
+
+
+_________________
+
+2️⃣ Uvicorn (ASGI)
+✅ Hardened Command
+uvicorn myapp:app \
+  --workers 4 \
+  --loop uvloop \
+  --http httptools \
+  --proxy-headers \
+  --forwarded-allow-ips="*" \
+  --interface asgi3 \
+  --timeout-keep-alive 15 \
+  --uds /tmp/uvicorn.sock
+
+🔎 Explanation of Key Flags
+
+--workers 4 → Multi-process workers.
+
+--loop uvloop & --http httptools → High-performance event loop and parser.
+
+--proxy-headers → Trust headers only from your reverse proxy.
+
+--uds → Unix domain socket.
+
+--timeout-keep-alive 15 → Avoid keeping long idle connections.
+
+⚠️ Do not use --reload in production.
+
+__________________________________
+
+
+3️⃣ Hypercorn (ASGI)
+✅ Hardened Command
+hypercorn myapp:app \
+  --bind unix:/tmp/hypercorn.sock \
+  --workers 4 \
+  --access-log /var/log/hypercorn/access.log \
+  --error-log /var/log/hypercorn/error.log \
+  --worker-class uvloop \
+  --keep-alive 15
+
+🔎 Explanation of Key Flags
+
+--bind unix:/tmp/hypercorn.sock → Secure socket binding.
+
+--workers 4 → Multiple processes.
+
+--worker-class uvloop → Async optimized workers.
+
+--keep-alive 15 → Drop idle connections fast.
+
+⚠️ Do not run with --reload.
+
+____________________________________
+
+4️⃣ Waitress (WSGI)
+✅ Hardened Command
+waitress-serve \
+  --listen=unix:/tmp/waitress.sock \
+  --threads=4 \
+  --ident='' \
+  --connection-limit=100 \
+  --channel-timeout=30 \
+  myapp:wsgi_app
+
+🔎 Explanation of Key Flags
+
+--listen=unix:/tmp/waitress.sock → Unix socket for Nginx.
+
+--threads=4 → Thread pool size.
+
+--ident='' → Hide server banner.
+
+--connection-limit → Prevent too many open sockets.
+
+--channel-timeout=30 → Timeout idle connections.
+
+⚠️ Do not use in debug mode.
+
+___________
+
+5️⃣ Gunicorn + Uvicorn Workers
+✅ Hardened Command
+gunicorn myapp:app ^
+  --workers 4 ^
+  --worker-class uvicorn.workers.UvicornWorker ^
+  --bind unix:/tmp/gunicorn-uvicorn.sock ^
+  --user nobody ^
+  --group nogroup ^
+  --access-logfile /var/log/gunicorn-uvicorn/access.log ^
+  --error-logfile /var/log/gunicorn-uvicorn/error.log ^
+  --capture-output ^
+  --limit-request-line 8190 ^
+  --limit-request-field_size 8190 ^
+  --timeout 30
+
+🔎 Explanation
+
+Combines Gunicorn process manager with Uvicorn async workers
+
+Hardened with request limits, logs, privilege drop
+
+⚠️ Never use --reload in production.
+
+_______________________
+
+Development vs Production Comparison
+Feature / Flag	Development (Safe)	Production (Safe)
+--reload	✅ Local only	❌ Never use
+Debug mode	✅ Local only	❌ Never use
+Binding	127.0.0.1:8000	Unix socket or proxy
+Logging	Debug/Info	Info/Error only
+Workers	1	≥ 2–4 per CPU core
+User Privileges	Root (local)	Non-root only
+Security Headers	Optional	✅ Mandatory (via proxy)
+
+_____________
+
+✅ Final Security Checklist
+
+ Never run with debug or --reload in production
+
+ Use Unix sockets with reverse proxy (Nginx, Caddy, HAProxy)
+
+ Drop privileges after binding (--user, --group)
+
+ Enforce request and connection limits
+
+ Structured logs + log rotation
+
+ Workers per CPU core (2–4)
+
+ Apply security headers at proxy level
+
+ Monitor logs & alerts for anomalies
+
+
