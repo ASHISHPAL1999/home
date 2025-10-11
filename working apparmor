@@ -1,0 +1,204 @@
+# AppArmor profile for hardened Tomcat container
+#include <tunables/global>
+
+profile my_tomcat flags=(attach_disconnected, mediate_deleted) {
+  # Include Java abstractions
+  # This provides a base set of Java permissions
+  # Remove if you want full control
+  #include <abstractions/java>
+/usr/bin/sed rix,
+/usr/libexec/grepconf.sh rix,
+
+# Allow internal signal communication
+signal send peer=my_tomcat,
+
+/etc/profile.d/ r,
+/etc/profile.d/** rwixl,
+
+# Allow signals
+signal receive,
+
+network inet dgram,
+network inet6 dgram,
+network inet stream,
+network inet6 stream,
+
+network raw,
+# Allow raw netlink socket for system/network info
+network netlink raw,
+
+# Allow reading DNS resolver configuration
+/etc/host.conf r,
+/etc/resolv.conf r,
+
+# Allow reading /etc/hosts
+/etc/hosts r,
+
+# Allow access to CPU cgroup control
+/sys/fs/cgroup/cpu.max r,
+
+# Allow reading root directory (may be needed for container tools)
+/ r,
+
+# Allow reading network interface info (IPv6 support)
+/proc/1/net/if_inet6 r,
+
+# Allow random number generation for cryptographic operations
+/dev/random r,
+/dev/urandom r,
+
+# Allow shutdown on UNIX domain sockets (some Java apps require it)
+network unix stream,
+
+/usr/bin/sed rix,
+
+# Allow reading process mount info (used by JVM)
+/proc/1/mountinfo r,
+
+# Java performance data (JVM writes performance metrics here)
+/tmp/hsperfdata_root/ r,
+/tmp/hsperfdata_root/** r,
+
+# Allow JVM to read crypto policy
+/usr/share/crypto-policies/DEFAULT/java.txt r,
+
+# Allow timezone database access (used for java.time APIs)
+/usr/share/javazi-1.8/tzdb.dat r,
+
+# JVM memory management checks
+/proc/sys/vm/overcommit_memory r,
+/sys/fs/cgroup/memory.max r,
+
+#extra above
+  # Capabilities required for Tomcat + Java
+  capability setuid,
+  capability setgid,
+  capability net_bind_service,
+
+  # Networking
+  network inet stream,
+  network inet6 stream,
+
+  # Base paths
+  /Homifyapp/** r,
+
+  # Java executable and helper access
+  /usr/lib/jvm/java-11-openjdk/bin/java rix,
+  /usr/bin/java rix,
+  /usr/lib/jvm/**/bin/** rix,
+
+  # JVM and classpath access
+  /usr/lib/jvm/**.jar r,
+  /usr/lib/jvm/**/lib/**/*.jar r,
+  /usr/lib/jvm/**/lib/** rm,
+  /usr/lib/jvm/**/lib/security/** r,
+  /usr/lib/jvm/**/conf/** r,
+  /usr/lib/jvm/**/lib/**.properties r,
+  /usr/lib/jvm/**/lib/**.so* mr,
+  /usr/lib/jvm/** rix,
+
+  # Shared libraries
+  /lib/** mr,
+  /lib64/** mr,
+  /usr/lib/** mr,
+  /usr/lib64/** mr,
+
+  # Essential system utilities
+  /bin/uname ixr,
+  /usr/bin/uname ixr,
+  /bin/dirname ixr,
+  /usr/bin/dirname ixr,
+  /bin/basename ixr,
+  /usr/bin/basename ixr,
+  /bin/echo ixr,
+  /usr/bin/expr ixr,
+  /usr/bin/coreutils rix,
+
+
+# extra start
+#extra 3
+# Allow Java perf data
+/tmp/hsperfdata_root/** r,
+
+# Allow access to proc
+/proc/1/cgroup r,
+/proc/[0-9]*/ r,
+
+# Allow reading java security configuration
+/etc/java/** r,
+
+#extra 3 ends here
+
+#extra 2
+# Allow JVM access to performance and environment info
+/proc/stat r,
+/proc/cpuinfo r,
+/proc/cgroups r,
+/proc/1/coredump_filter rw,
+/proc/*/coredump_filter rw,
+
+# CPU info from sysfs
+/sys/devices/system/cpu/ r,
+/sys/devices/system/cpu/online r,
+
+# Timezone info for Java
+/usr/share/zoneinfo/ r,
+/usr/share/zoneinfo/** r,
+
+# JVM performance data (GC, threads)
+/tmp/hsperfdata_*/** rwk,
+
+#extra 2 end
+# Dynamic linker cache and NSS
+/etc/ld.so.cache r,
+/etc/nsswitch.conf r,
+/etc/passwd r,
+
+# TTY (for console access or shell output)
+# Optional, restrict write if you want only read
+/dev/tty rw,
+/dev/pts/** rw,
+
+# Proc files used by commands like `uname`, `dirname`, JVM, etc.
+/proc/filesystems r,
+/proc/*/mounts r,
+
+
+#extra ends
+# Your custom app directory
+  # Tomcat binaries and directories
+  /Homifyapp/prodapps/tomcat/** r,
+  /Homifyapp/prodapps/tomcat/conf/** r,
+  /Homifyapp/prodapps/tomcat/bin/** rix,
+  /Homifyapp/prodapps/tomcat/lib/** r,
+  /Homifyapp/prodapps/tomcat/logs/ rw,
+ /Homifyapp/prodapps/tomcat/logs/** rw,
+  /Homifyapp/prodapps/tomcat/temp/** rw,
+  /Homifyapp/prodapps/tomcat/work/** rw,
+  /Homifyapp/prodapps/tomcat/webapps/** r,
+  # Read access to certs and security config
+  /etc/ssl/** r,
+  /usr/lib/ssl/** r,
+  /etc/java-*/security/java.security r,
+  /etc/java*/lib/security/java.security r,
+
+  # Optional: allow reading bash profile
+  /root/.bashrc ixr,
+
+  # === [ Optional Restriction — Commented out for now ] ===
+  # You may re-enable this after debugging:
+/Homifyapp/prodapps/tomcat/bin/** mr,
+  # Block dangerous binaries (some are still needed, like bash)
+# For common debugging commands (not recommended in production)
+   #  /usr/bin/bash ix,
+  #/bin/bash ix,
+   #/usr/bin/mkdir rix,
+  #/usr/bin/ls rix,
+  #/usr/bin/cd rix,
+ #/usr/bin/ping rix,
+ #/usr/bin/curl rix,
+ /etc/inputrc r,
+ /etc/bashrc r,
+ /usr/share/terminfo/** r,
+
+}
