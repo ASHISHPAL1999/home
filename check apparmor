@@ -1,0 +1,78 @@
+# AppArmor profile for hardened Tomcat container
+#include <tunables/global>
+ 
+profile custom_tomcat flags=(attach_disconnected, mediate_deleted) {
+  # Include Java abstractions
+  # This provides a base set of Java permissions
+  #include <abstractions/java>
+  
+# Allow JVM to read crypto policy
+/usr/share/crypto-policies/DEFAULT/java.txt r,
+ 
+# Allow timezone database access (used for java.time APIs)
+/usr/share/javazi-1.8/tzdb.dat r,
+ 
+# Allow reading root directory (needed for container tools)
+/ r,
+ 
+# Base paths
+/Homifyapp/** r,
+ 
+  # Java executable and helper access
+  /usr/lib/jvm/java-11-openjdk/bin/java rix,
+  /usr/bin/java rix,
+  /usr/lib/jvm/**/bin/** rix,
+ 
+  # JVM and classpath access
+  /usr/lib/jvm/**.jar r,
+  /usr/lib/jvm/**/lib/**/*.jar r,
+  /usr/lib/jvm/**/lib/** rm,
+  /usr/lib/jvm/**/lib/security/** r,
+  /usr/lib/jvm/**/conf/** r,
+  /usr/lib/jvm/**/lib/**.properties r,
+  /usr/lib/jvm/**/lib/**.so* mr,
+  /usr/lib/jvm/** rix,
+ 
+  # Shared libraries
+   /lib/** mr,
+  /lib64/** mr,
+  /usr/lib/** mr,
+  /usr/lib64/** mr,
+ 
+ 
+# Allow reading java security configuration
+/etc/java/** r,
+ 
+# Your custom app directory
+  # Tomcat binaries and directories
+  /Homifyapp/prodapps/tomcatXX/** r,
+  /Homifyapp/prodapps/tomcatXX/conf/** r,
+  /Homifyapp/prodapps/tomcatXX/bin/** rix,
+  /Homifyapp/prodapps/tomcatXX/lib/** r,
+  /Homifyapp/prodapps/tomcatXX/logs/ rw,
+/Homifyapp/prodapps/tomcatXX/logs/** rw,
+  /Homifyapp/prodapps/tomcatXX/temp/** rw,
+  /Homifyapp/prodapps/tomcatXX/work/** rw,
+  /Homifyapp/prodapps/tomcatXX/webapps/** r,
+ 
+  # Read security config
+  /etc/java-*/security/java.security r,
+  /etc/java*/lib/security/java.security r,
+ 
+# Deny all capabilities
+  deny capability,
+ 
+ 
+# For common debugging commands 
+/usr/bin rix,    
+/usr/bin/ls rix,
+/usr/bin/cd rix,
+/bin/bash rix,
+/Homifyapp/** rix,
+dockerd rix,
+runc rix,
+signal (receive) peer=unconfined,
+/usr/bin/mkdir rix,
+ 
+ 
+}
