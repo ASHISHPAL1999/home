@@ -1,0 +1,124 @@
+# AppArmor profile for hardened Tomcat container
+
+profile tomcat-apparmor-profile flags=(attach_disconnected, mediate_deleted) {
+  # Include Java abstractions
+  # This provides a base set of Java permissions
+
+
+#allow network acess
+network inet stream,
+network inet dgram,
+network inet6 stream,
+network inet6 dgram ,
+capability net_bind_service,
+signal receive,
+#allow signal from other processes (for shutdown & thread managerment)
+#/etc/resolv.conf r,
+#/etc/host.conf r,
+#/etc/nsswitch.conf r,
+#/etc/ld.so.cache r,
+#/usr/bin/dirname rix,
+#/usr/bin/uname rix,
+#/dev/tty rw,
+#/dev/null rw,
+#/dev/random rw,
+#/dev/zero rw,
+#/dev/urandom rw,
+#/dev/ptmx rw,
+
+
+
+#/root/.bash_history rw,
+#/etc/passwd r,
+#/proc/** r,
+# Allow read access to CPU online status
+#/sys/devices/system/cpu/online r,
+# Allow read access to timezone info
+#/usr/share/zoneinfo/UTC r,
+# Allow read access to cgroup files
+#/sys/fs/cgroup/cpu.max r,
+#/sys/fs/cgroup/memory.max r,
+# Allow write access to coredump filter
+#/proc/1/coredump_filter w,
+
+#allow unix domain socker connections stream
+#unix (connect,bind,listen) peer=@{PROC},
+# Allow JVM to read crypto policy
+/usr/share/crypto-policies/DEFAULT/java.txt r,
+# Allow timezone database access (used for java.time APIs)
+/usr/share/javazi-1.8/tzdb.dat r,
+
+# Allow reading root directory (needed for container tools)
+/ r,
+
+ # Base paths
+ /usr/local/tomcat/** r,
+
+  # Java executable and helper access
+  /usr/lib/jvm/java-11-openjdk/bin/java rix,
+  /usr/bin/java rix,
+  /usr/lib/jvm/**/bin/** rix,
+
+  # JVM and classpath access
+  /usr/lib/jvm/**.jar r,
+  /usr/lib/jvm/**/lib/**/*.jar r,
+  /usr/lib/jvm/**/lib/** rm,
+  /usr/lib/jvm/**/lib/security/** r,
+  /usr/lib/jvm/**/conf/** r,
+  /usr/lib/jvm/**/lib/**.properties r,
+  /usr/lib/jvm/**/lib/**.so* mr,
+  /usr/lib/jvm/** rix,
+
+  # Shared libraries
+   /lib/** mr,
+  /lib64/** mr,
+  /usr/lib/** mr,
+  /usr/lib64/** mr,
+
+
+# Allow reading java security configuration
+/etc/java/** r,
+
+# Your custom app directory
+  # Tomcat binaries and directories
+  /Homifyapp/prodapps/tomcat/** r,
+  /Homifyapp/prodapps/tomcat/conf/** r,
+  /Homifyapp/prodapps/tomcat/bin/** rix,
+  /Homifyapp/prodapps/tomcat/lib/** r,
+  /Homifyapp/prodapps/tomcat/logs/ rw,
+/Homifyapp/prodapps/tomcat/logs/** rw,
+  /Homifyapp/prodapps/tomcat/temp/** rw,
+  /Homifyapp/prodapps/tomcat/work/** rw,
+ /Homifyapp/prodapps/tomcat/webapps/** r,
+
+#/Homifyapp/prodapps/tomcat/conf/Catalina/ r,
+#/Homifyapp/prodapps/tomcat/conf/Catalina/ rw,
+#/tmp/hsperfdata_root/ r,
+#/tmp/hsperfdata_root/ rw,
+#/Homifyapp/prodapps/tomcat/conf/Catalina/localhost/ r,
+#/Homifyapp/prodapps/tomcat/conf/Catalina/localhost/** rwk,
+#unix (stream) rw,
+
+#NEW
+/tmp/** rw,
+#/Homifyapp/prodapps/tomcat/conf/Catalina/localhost rw,
+#/sys/devices/** r,
+#/NEW
+  # Read security config
+  /etc/java-*/security/java.security r,
+  /etc/java*/lib/security/java.security r,
+
+# Deny all capabilities
+#  deny capability,
+
+# For common debugging commands
+   /bin/bash ix,
+   /usr/sh ix,
+#common utilities
+  /usr/bin/cat ix,
+ /usr/bin/curl ix,
+ /bin/ls ix,
+
+
+
+}
