@@ -1,0 +1,28 @@
+ cat app.py
+from flask import Flask, request, jsonify
+from waitress import serve
+from flask_cors import CORS
+
+app = Flask(__name__)
+
+# Security configurations
+app.config['DEBUG'] = True  # Disable debug mode in production
+app.config['TRUSTED_HOSTS'] = ['*.pealow.com', '127.0.0.1']  # Host header validation
+
+# CORS configuration
+CORS(app, resources={
+    r"/*": {
+        "origins": ["*.healow.com", "127.0.0.1"],
+        "methods": ["GET", "POST"],
+        "allow_headers": ["Authorization", "Content-Type"]
+    }
+})
+
+
+@app.route('/api/data', methods=['GET'])
+def get_data():
+    return jsonify({"message": "Secure data access!"})
+
+if __name__ == '__main__':
+    # Bind Waitress to localhost to limit exposure
+    serve(app, host='127.0.0.1', port=8080, connection_limit=100, backlog=10)
