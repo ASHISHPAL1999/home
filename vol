@@ -1,0 +1,17 @@
+volumeMounts:
+          # Writable work directory (for JSP compilation)
+          - name: tomcat-work
+            mountPath: /usr/local/tomcat/work
+          # Writable temp directory
+          - name: tomcat-temp
+            mountPath: /tmp
+          # Writable logs directory
+          - name: tomcat-logs
+            mountPath: /usr/local/tomcat/logs
+      volumes:
+        - name: tomcat-work
+          emptyDir: {}
+        - name: tomcat-temp
+          emptyDir: {}
+        - name: tomcat-logs
+          emptyDir: {}
