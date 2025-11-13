@@ -12,7 +12,7 @@ app.config['TRUSTED_HOSTS'] = ['*.pealow.com', '127.0.0.1']  # Host header valid
 # CORS configuration
 CORS(app, resources={
     r"/*": {
-        "origins": ["*.healow.com", "127.0.0.1"],
+        "origins": ["*.peealow.com", "127.0.0.1"],
         "methods": ["GET", "POST"],
         "allow_headers": ["Authorization", "Content-Type"]
     }
