@@ -26,3 +26,92 @@ def get_data():
 if __name__ == '__main__':
     # Bind Waitress to localhost to limit exposure
     serve(app, host='127.0.0.1', port=8080, connection_limit=100, backlog=10)
+__________________
+
+secure
+
+from flask import Flask, request, jsonify
+from waitress import serve
+from flask_cors import CORS
+import re
+
+app = Flask(__name__)
+
+# ------------------------------------------------------------------------------
+# ⚙️ Security Configurations
+# ------------------------------------------------------------------------------
+app.config['DEBUG'] = False  # Always False in production
+app.config['TRUSTED_HOSTS'] = ['peealow.com', '127.0.0.1', 'localhost']  # Restrict allowed hosts
+
+# ------------------------------------------------------------------------------
+# 🌐 CORS Configuration
+# ------------------------------------------------------------------------------
+CORS(
+    app,
+    resources={r"/*": {"origins": ["https://peealow.com", "http://127.0.0.1"]}},
+    supports_credentials=True,
+    methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
+)
+
+# ------------------------------------------------------------------------------
+# 🧱 Middleware: Restrict allowed hosts (like FastAPI TrustedHostMiddleware)
+# ------------------------------------------------------------------------------
+@app.before_request
+def validate_host():
+    host = request.host.split(":")[0]
+    trusted = app.config['TRUSTED_HOSTS']
+    if not any(re.match(rf".*{re.escape(th)}$", host) for th in trusted):
+        return jsonify({"error": "Forbidden host"}), 403
+
+
+# ------------------------------------------------------------------------------
+# 🚫 Remove 'Server' header from all responses
+# ------------------------------------------------------------------------------
+@app.after_request
+def remove_server_header(response):
+    response.headers.pop('Server', None)
+    return response
+
+
+# ------------------------------------------------------------------------------
+# ✅ Routes
+# ------------------------------------------------------------------------------
+@app.route('/')
+def home():
+    return jsonify({"message": "Secure Flask API is running!"})
+
+
+@app.route('/api/data', methods=['GET'])
+def get_data():
+    return jsonify({"status": "ok", "data": [1, 2, 3]})
+
+
+# ------------------------------------------------------------------------------
+# ⚠️ Custom Error Handlers
+# ------------------------------------------------------------------------------
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify({"error": "Resource not found"}), 404
+
+
+@app.errorhandler(500)
+def internal_error(e):
+    return jsonify({"error": "Internal server error"}), 500
+
+
+# ------------------------------------------------------------------------------
+# 🚀 Start Waitress Securely
+# ------------------------------------------------------------------------------
+if __name__ == '__main__':
+    print("✅ Starting secure Flask server with Waitress...")
+    serve(
+        app,
+        host='0.0.0.0',          # use '127.0.0.1' to restrict to localhost only
+        port=8080,
+        threads=4,               # adjust per CPU cores
+        connection_limit=100,    # max concurrent connections
+        backlog=10,              # queued requests before refusing
+        expose_tracebacks=False, # don't show internal errors
+        ident=None               # removes 'Server: waitress' header
+    )
