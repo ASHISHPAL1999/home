@@ -1,0 +1,31 @@
+#pip install langchain langchain-community faiss-cpu
+
+
+from langchain_community.chat_models import ChatOllama
+from langchain_community.embeddings import OllamaEmbeddings
+from langchain.vectorstores import FAISS
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+docs = [
+    "Ollama lets you run local LLMs easily.",
+    "LangChain helps connect LLMs with tools, memory and RAG."
+]
+
+# Split documents
+splitter = RecursiveCharacterTextSplitter(chunk_size=128)
+chunks = splitter.split_text("\n".join(docs))
+
+# Embeddings
+emb = OllamaEmbeddings(model="llama3")
+
+# Vector store
+db = FAISS.from_texts(chunks, emb)
+
+# Query
+query = "What is LangChain?"
+docs = db.similarity_search(query)
+
+# LLM
+llm = ChatOllama(model="llama3")
+
+print(llm.invoke(f"Answer using context: {docs}"))
