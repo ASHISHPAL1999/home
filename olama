@@ -1,0 +1,16 @@
+from langchain_community.chat_models import ChatOllama
+from langchain.prompts import ChatPromptTemplate
+
+model = ChatOllama(
+    model="llama3",
+    base_url="http://localhost:11434"
+)
+
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are an expert AI teacher."),
+    ("user", "{question}")
+])
+
+chain = prompt | model
+
+print(chain.invoke({"question": "What is LangChain?"}))
