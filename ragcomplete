@@ -1,0 +1,71 @@
+#pip install langchain langchain-community langchain-text-splitters pypdf faiss-cpu
+
+
+from langchain_community.vectorstores import FAISS
+from langchain_community.embeddings import OllamaEmbeddings
+from langchain_community.chat_models import ChatOllama
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.prompts import ChatPromptTemplate
+from pypdf import PdfReader
+
+# -------------------------------------------------
+# 1. Read PDF Function
+# -------------------------------------------------
+def read_pdf(path):
+    reader = PdfReader(path)
+    text = ""
+    for page in reader.pages:
+        content = page.extract_text()
+        if content:
+            text += content + "\n"
+    return text
+
+# -------------------------------------------------
+# Load your PDF
+# -------------------------------------------------
+pdf_text = read_pdf("sample.pdf")  # <--- replace with your PDF file
+
+# -------------------------------------------------
+# 2. Split PDF text into chunks
+# -------------------------------------------------
+splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+chunks = splitter.split_text(pdf_text)
+
+# -------------------------------------------------
+# 3. Embeddings using Ollama
+# -------------------------------------------------
+emb = OllamaEmbeddings(model="llama3")
+
+# -------------------------------------------------
+# 4. Create FAISS Vector Store
+# -------------------------------------------------
+db = FAISS.from_texts(chunks, emb)
+
+# -------------------------------------------------
+# 5. Connect to Ollama LLM
+# -------------------------------------------------
+llm = ChatOllama(model="llama3", base_url="http://localhost:11434")
+
+# -------------------------------------------------
+# 6. RAG Answer Function
+# -------------------------------------------------
+def answer_question(query):
+    docs = db.similarity_search(query, k=3)
+    context = "\n\n".join([d.page_content for d in docs])
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", "You are a PDF question-answering assistant. Use only the provided context."),
+        ("user", f"Context:\n{context}\n\nQuestion: {query}")
+    ])
+
+    chain = prompt | llm
+    return chain.invoke({})
+
+# -------------------------------------------------
+# 7. Take question from standard input
+# -------------------------------------------------
+if __name__ == "__main__":
+    question = input("Enter your question: ")
+    response = answer_question(question)
+    print("\nAnswer:\n")
+    print(response)
