@@ -1,0 +1,48 @@
+import subprocess
+import pandas as pd
+import time
+
+excel_file = "files.xlsx"
+df = pd.read_excel(excel_file)
+
+filename_col = "filename"
+output_col = "codexscanoutput"
+
+for i, row in df.iterrows():
+    file_path = row[filename_col]
+    print(f"Scanning: {file_path}")
+
+    try:
+        # Start codex process
+        process = subprocess.Popen(
+            ["codex"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+
+        # Send inputs (simulate typing)
+        time.sleep(1)
+        process.stdin.write("/review\n")
+        process.stdin.flush()
+
+        time.sleep(1)
+        process.stdin.write("4\n")
+        process.stdin.flush()
+
+        time.sleep(1)
+        process.stdin.write(f"{file_path}\n")
+        process.stdin.flush()
+
+        # Wait for completion and capture output
+        output, _ = process.communicate(timeout=120)
+
+        df.at[i, output_col] = output
+
+    except Exception as e:
+        df.at[i, output_col] = f"Error: {e}"
+
+# Save updated Excel
+df.to_excel("scan_results.xlsx", index=False)
+print("Completed. Output saved to scan_results.xlsx")
